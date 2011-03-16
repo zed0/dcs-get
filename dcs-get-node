@@ -79,6 +79,11 @@ var handleCLI = function () {
 			break;
 		case "search":
 		case "s":
+			exec( 'dcs-get l | grep ' + process.argv[3], function( err, stdout, stderr ) {
+				if ( err ) console.log( err );
+				console.log( stdout );
+			});
+			break;
 		case "install":
 		case "i":
 		case "reinstall":
@@ -102,6 +107,54 @@ var handleCLI = function () {
 	}	
 }
 
+function symDir ( fromDir, toDir ) {
+	fs.readDir( from, function( err, files ) {
+		files.forEach( function( file ) {
+			fs.stat( fromDir+'/'+file, function( err, stats ) {
+				if( file.charAt(0) != '.' ) {
+					if ( stats.isFile() ) {
+						fs.symlink( fromDir+'/'+file, toDir+'/'+file, function ( err ) {
+							if ( err ) console.log( err );
+						});
+					}
+					else if ( stats.isDir() ) {
+						fs.stat( toDir+'/'+file, function( err, stats ) {
+							if ( !stats.isDir ) {
+								fs.mkdir( toDir+'/'+file, '700', function( err ) {
+									if ( err ) console.log( err );
+									symDir( fromDir+'/'+file, toDir+'/'+file );
+								});
+							}
+						}
+					}							
+				}			
+			});
+		});
+	});
+}
+
+
+function getSymsTo( from, to ) {
+	var files = [];
+	fs.readdir( settings.install_dir+'/'+from, function( err, files ) {
+		files.forEach( function ( file ) {
+			if ( file.charAt(0) ) {
+				fs.lstat( function ( err, stats ) {
+					if ( stats.isSymbolicLink() ) {
+						fs.readlink( function( err, path ) {
+							if ( settings.install_dir+'/'+from+'/'+file.indexOf( settings.install_dir+'/'+to ) == 0 ) {
+								files.push( from+'/'+file );
+							}
+							else {
+								files = files.concat( getSymsTo( from+'/'+file, to ) );
+							}
+						});
+					}
+				});
+			}
+		});
+	});
+}
 
 // Function to download a file, while extracting it
 // TODO: Add callbacks (progress and complete)
@@ -143,6 +196,29 @@ var downloadPackage = function (package) {
 	});
 };
 downloadPackage('git-1.7.3.2');
+
+//Utility functions and stuff
+
+function searchPackages( look ) {
+
+	
+
+}
+
+function listPackages() {
+	for ( var i in data ) {
+		console.log( i + " - " + data[i].description );
+	}
+}
+
+function isInstalled( package, version ) {
+	var result = false;
+	fs.stat( installDir+"/"+package+"-"+version, function ( err, stats ) {
+		err ? console.log( err ): result = stats.isDirectory();
+	});
+	return result;
+}
+
 
 // Useful functions (not written by me)
 function sortObject(o) {
