@@ -11,6 +11,8 @@ var settings = {
 // Global variable for packages
 var packages;
 
+// Directories to ignore when listing packages.
+var ignore = ( "bin", "cleanup", "downloads", "downloaded", "lib", "home" );
 // Node modules
 var 	http = require('http'),
 	fs = require('fs'),
@@ -86,10 +88,29 @@ var handleCLI = function () {
 			break;
 		case "install":
 		case "i":
+			process.argv.shift();
+			process.argv.shift();
+			process.argv.shift();
+			process.argv.foreach( function ( package ) {
+				var tmp = package.split( '-' );
+				if ( tmp[1] != undefined ) {
+					installPackage( tmp[0], tmp[1] );
+				}
+				else {
+					installPackage( tmp[0], packages[tmp[0]].version[0] );
+				}
+			});
+			break;			
 		case "reinstall":
 		case "r":
 		case "list-installed":
 		case "li":
+			fs.readdir( settings.install_dir, function ( err, file ) {
+				if ( ignore.indexOf( file ) == -1 ) {
+					console.log( file );
+				}
+			});
+			break;
 		case "gensymlinks":
 		case "g":
 		case "package":
@@ -97,7 +118,9 @@ var handleCLI = function () {
 		case "upload":
 		case "u":
 		case "help":
-			console.log("TODO");
+			fs.readFile( 'help', encoding='utf8', function ( err, data ) {
+				console.log( data );
+			});
 			break;
 		case "commands":
 			console.log("commands search install reinstall list list-dev clean gensymlinks package help upload");
@@ -125,7 +148,7 @@ function symDir ( fromDir, toDir ) {
 									symDir( fromDir+'/'+file, toDir+'/'+file );
 								});
 							}
-						}
+						});
 					}							
 				}			
 			});
@@ -155,6 +178,39 @@ function getSymsTo( from, to ) {
 		});
 	});
 }
+
+function installPackage ( package, version ) {
+
+	if ( isInstalled( package, version ) ) {
+		console.log( "Already installed "+package+"-"+version );
+		return true;
+	}
+	
+	if( packages[package] == undefined || packages[package].version != version ) {
+		console.log( "No such package "+package+"-"+version );
+		return false;
+	}
+	
+	if( packages[package].dependencies != undefined ) {
+		var deps = packages[package].dependencies;
+
+		deps.forEach( function ( dependency ) {
+			if( !isInstalled( dependency[0], dependency[1] ) ) {
+				installPackage( dependency[0], dependency[1] );
+			}
+		});
+	}
+	
+	if( packages[package].type == undefined || packages[package].type != "meta" ) {
+		downloadPackage( package+"-"+version );
+		fs.rename( settings.install_dir+"/downloads/"+package+"-"+version+".tar.gz", settings.install_dir+"/downloaded/"+package+"-"+version+".tar.gz", function ( err ) {
+			if ( err ) console.log( err );
+		});
+	}
+	console.log( "Installed "+package+"-"+version );
+	return true;
+}
+
 
 // Function to download a file, while extracting it
 // TODO: Add callbacks (progress and complete)
@@ -195,15 +251,10 @@ var downloadPackage = function (package) {
         	if (settings.debug) console.log(e);
 	});
 };
-downloadPackage('git-1.7.3.2');
+//downloadPackage('git-1.7.3.2');
 
 //Utility functions and stuff
 
-function searchPackages( look ) {
-
-	
-
-}
 
 function listPackages() {
 	for ( var i in data ) {
@@ -218,7 +269,6 @@ function isInstalled( package, version ) {
 	});
 	return result;
 }
-
 
 // Useful functions (not written by me)
 function sortObject(o) {

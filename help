@@ -1,0 +1,23 @@
+dcs-get - A package manager for DCS
+
+Usage: 		dcs-get command
+		dcs-get install|reinstall pkg1 [pkg2 ...]
+		dcs-get package|gensymlinks|upload dir1
+
+	dcs-get is a simple command line interface for downloading and
+	installing precompiled packages into /var/tmp.
+
+Commands:
+	clean - Remove dcs-get completely.
+	list - List all available packages.
+	list-dev - List only development packages.
+	list-installed - List installed packages.
+	install - Install new packages.
+	reinstall - Remove and reinstall packages.
+	gensymlinks - Generate symlinks for a folder in /var/tmp/dcs-get.
+	package - Compresses directory to a .tar.gz.
+	upload - Uploads package to server.
+	help - Shows this page.
+	commands - Show available commands.
+
+			Probably Fine.
