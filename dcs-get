@@ -140,7 +140,7 @@ switch ($input[1]) {
                                         install_package($package, $packages->$package->version[0], true);
                                 }
                         } else if (isset($packages->$package)) {
-				shell_exec('rm -rf '.INSTALL_DIR.'/'.$package.'-'.$packages->$package->version[0]);
+					shell_exec('rm -rf '.INSTALL_DIR.'/'.$package.'-'.$packages->$package->version[0]);
                                 install_package($package, $packages->$package->version[0], true);
                         } else {
                                 $pack_name = substr($package,0,strrpos($package,'-'));
