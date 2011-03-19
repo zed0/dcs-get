@@ -153,33 +153,43 @@ var handleCLI = function () {
 		case "commands":
 			console.log("commands search install reinstall list list-dev clean gensymlinks package help upload");
 			break;
+		case "test":
+			genSymLinks( dir );
+			break;
 		default:
 			console.log("Try dcs-get help");
 	}	
 }
 
+//TODO - MrWilson-- HOW I POST!?
+
 function uploadFiles( dir ) {
 	var packageName = settings.install_dir+"/downloaded/"+dir+".tar.gz";
-	fs.stat( packagename, function( err, stats ) {
+	fs.stat( packageName, function( err, stats ) {
 		if ( err || !stats.isFile() ) {
 			console.log( err );
 			return false;
 		}
 		else {
-			var options = { 
+			var tmp = 0;
+
+			var options = {
 				host: settings.base_host,
 				port: 80,
-				path: settings.base_path+"/uploader.php"
+				method: 'POST',
+				path: settings.base_path+"/uploader.php",
+				headers: { "Content-Type" : "application/x-www-multipart" }
 			};
 			var req = http.request( options, function( res ) {
-				console.log( "STATUS: " + res.statusCode );
-				fs.readFile( packageName, function( err, data ) {
-					req.write( data );
+				//req.setEncoding( 'binary' );
+
 				});
 			});
-			req.end();
-			return true;
+			
+			
 		}
+		req.end();
+		return true;
 	});
 }
 
@@ -188,7 +198,7 @@ function genSymLinks( dir ) {
 	fs.stat( settings.install_dir+"/"+dir, function( err, stats ) {
 		if ( stats.isDirectory() ) {
 			var version = dir.split( "-" )[1];
-			fs.readDir( settings.install_dir+"/"+dir+"/bin", function( err, files ) {
+			fs.readdir( settings.install_dir+"/"+dir+"/bin", function( err, files ) {
 				files.forEach( function( file ) {
 					fs.stat( settings.install_dir+"/"+dir+"/bin/"+file, function( err, stats ) {
 						if ( file.charAt(0) != "." && stats.isFile() ) {	
@@ -199,7 +209,7 @@ function genSymLinks( dir ) {
 				});
 			});
 			
-			symDir( settings.install_dir+"/lib/", settings.install_dir+"/"+dir+"/lib/" );
+			symDir( settings.install_dir+"/lib", settings.install_dir+"/"+dir+"/lib" );
 			console.log( "Symlinks for "+dir+" generated" );
 		} else {
 			console.log( dir+" does not exist." );
@@ -208,11 +218,19 @@ function genSymLinks( dir ) {
 }
 
 function reinstallPackage( package, version ) {
-	exec( "rm -rf "+settings.install_dir+"/"+package, function( err, stdout, stderr ) {
-		if ( err ) console.log( err );
-		installPackage( package, version );
+	path.exists( settings.install_dir+"/"+package+"-"+version, function( exists ) {
+ 		if( exists ) {
+			exec( "rm -rf "+settings.install_dir+"/"+package+"-"+version, function( err, stdout, stderr ) {
+				if ( err ) console.log( err );
+				installPackage( package, version );
+			});
+		}
+		else {
+			console.log( "Package "+package+"-"+version+" not installed. Installing now." );
+			installPackage( package, version );
+		}
 	});
-}
+}	
 
 function packageFiles( dir ) {
 	var tarfiles = [];
@@ -232,8 +250,8 @@ function packageFiles( dir ) {
 					});
 				});
 			});
-			tarfiles.concat( getSymsTo( 'lib/', dir+"/lib/" ) );
-			exec( "tar czf "+settings.install_dir+"/downloaded/"+dir+".tar.gz "+tarfiles.join(" ") , function ( err, stdout, stderr ) {
+			tarfiles.concat( getSymsTo( 'lib', dir+"/lib" ) );
+			exec( "tar czf "+settings.install_dir+"/downloaded/"+dir+".tar.gz "+settings.install_dir+"/"+tarfiles.join(" "+settings.install_dir+"/") , function ( err, stdout, stderr ) {
 				if ( err ) console.log( err );
 			});
 		}
@@ -241,47 +259,50 @@ function packageFiles( dir ) {
 }
 
 function symDir ( fromDir, toDir ) {
-	fs.readDir( from, function( err, files ) {
+	console.log( "From: "+fromDir,", To: "+toDir );
+	fs.readdir( toDir, function( err, files ) {
 		files.forEach( function( file ) {
-			fs.stat( fromDir+'/'+file, function( err, stats ) {
+			fs.stat( toDir+'/'+file, function( err, stats ) {
 				if( file.charAt(0) != '.' ) {
 					if ( stats.isFile() ) {
-						fs.symlink( fromDir+'/'+file, toDir+'/'+file, function ( err ) {
-							if ( err ) console.log( err );
+						fs.symlink( toDir+'/'+file, fromDir+'/'+file, function ( err ) {
+							//if ( err ) console.log( err );
 						});
 					}
-					else if ( stats.isDir() ) {
-						fs.stat( toDir+'/'+file, function( err, stats ) {
-							if ( !stats.isDir ) {
-								fs.mkdir( toDir+'/'+file, '700', function( err ) {
-									if ( err ) console.log( err );
+					else if ( stats.isDirectory() ) {
+						console.log( fromDir+'/'+file );
+						fs.stat( fromDir+'/'+file, function( err, stats ) {
+							if ( stats == undefined ) {
+								fs.mkdir( fromDir+'/'+file, '700', function( err ) {
+									//if ( err ) console.log( err );
 									symDir( fromDir+'/'+file, toDir+'/'+file );
 								});
 							}
 						});
-					}							
-				}			
+					}
+				}
 			});
 		});
 	});
 }
 
-
 function getSymsTo( from, to ) {
 	var files = [];
 	fs.readdir( settings.install_dir+'/'+from, function( err, files ) {
+		if( files == undefined ) return;
 		files.forEach( function ( file ) {
-			if ( file.charAt(0) ) {
-				fs.lstat( function ( err, stats ) {
+			if ( file.charAt(0) != "." ) {
+				fs.lstat( settings.install_dir+'/'+from+'/'+file, function ( err, stats ) {
 					if ( stats.isSymbolicLink() ) {
-						fs.readlink( function( err, path ) {
-							if ( settings.install_dir+'/'+from+'/'+file.indexOf( settings.install_dir+'/'+to ) == 0 ) {
+						fs.readlink( settings.install_dir+'/'+from+'/'+file, function( err, path ) {
+							var old = settings.install_dir+'/'+to;
+							if ( old.indexOf( path ) == 0 ) {
 								files.push( from+'/'+file );
 							}
-							else {
-								files = files.concat( getSymsTo( from+'/'+file, to ) );
-							}
 						});
+					}
+					else if ( stats.isDirectory() ) {
+						files = files.concat( getSymsTo( from+'/'+file, to ) );
 					}
 				});
 			}
@@ -302,7 +323,6 @@ function installPackage ( package, version ) {
 	}
 	else {
 		if( packages[package].dependencies != undefined ) {
-			console.log( "No dependencies" );
 			var deps = packages[package].dependencies;
 			deps.forEach( function ( dependency ) {
 				if( !isInstalled( dependency[0], dependency[1] ) ) {
@@ -323,7 +343,6 @@ function installPackage ( package, version ) {
 		}
 	}
 }
-
 
 // Function to download a file, while extracting it
 // TODO: Add callbacks (progress and complete)
@@ -364,7 +383,6 @@ var downloadPackage = function (package) {
         	if (settings.debug) console.log(e);
 	});
 }
-//downloadPackage('git-1.7.3.2');
 
 //Utility functions and stuff
 
