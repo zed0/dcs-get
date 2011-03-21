@@ -171,20 +171,36 @@ function uploadFiles( dir ) {
 			return false;
 		}
 		else {
-			var tmp = 0;
-
+			var boundary = "--gfyufgugvcibg";
 			var options = {
 				host: settings.base_host,
 				port: 80,
 				method: 'POST',
-				path: settings.base_path+"/uploader.php",
-				headers: { "Content-Type" : "application/x-www-multipart" }
+				path: settings.base_path+"uploader.php",
+				headers: { "Content-type" : "multipart/form-data, boundary="+boundary }
 			};
 			var req = http.request( options, function( res ) {
-				//req.setEncoding( 'binary' );
-
+				res.setEncoding('utf8');
+				req.write("\r\n"+boundary);
+				req.write("\r\nContent-Disposition: form-data; name=\"upload\"\r\n\r\n");
+				req.write("true\r\n");
+				req.write(boundary)
+				req.write("\r\nContent-Disposition: form-data; name=\"foo\"; filename=\""+packageName+"\"\r\n");
+				req.write("Content-Type: application/octet-stream");
+				util.pump( fs.createReadStream( packageName ), req );
+				req.write( boundary+"--");
+				req.end();
+				
+				res.on( 'data', function( data ) {
+					console.log( data );
 				});
+
+				res.on( 'error', function( err ) {
+					console.log( err );
+				});
+			
 			});
+			
 			
 			
 		}
