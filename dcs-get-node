@@ -35,7 +35,7 @@ http.get({
 	res.on('end', function () {
 		try {
 			packages = JSON.parse(data);
-			packages = sortObject(packages);			
+			packages = sortObject(packages);
 		} catch (e) {
 			console.log("Error: Problem with package data");
 			if (settings.debug) console.log(e);
@@ -166,45 +166,48 @@ var handleCLI = function () {
 function uploadFiles( dir ) {
 	var packageName = settings.install_dir+"/downloaded/"+dir+".tar.gz";
 	fs.stat( packageName, function( err, stats ) {
-		if ( err || !stats.isFile() ) {
-			console.log( err );
-			return false;
-		}
-		else {
-			var boundary = "--gfyufgugvcibg";
-			var options = {
-				host: settings.base_host,
-				port: 80,
-				method: 'POST',
-				path: settings.base_path+"uploader.php",
-				headers: { "Content-type" : "multipart/form-data, boundary="+boundary }
-			};
-			var req = http.request( options, function( res ) {
-				res.setEncoding('utf8');
-				req.write("\r\n"+boundary);
-				req.write("\r\nContent-Disposition: form-data; name=\"upload\"\r\n\r\n");
-				req.write("true\r\n");
-				req.write(boundary)
-				req.write("\r\nContent-Disposition: form-data; name=\"foo\"; filename=\""+packageName+"\"\r\n");
-				req.write("Content-Type: application/octet-stream");
-				util.pump( fs.createReadStream( packageName ), req );
-				req.write( boundary+"--");
-				req.end();
-				
-				res.on( 'data', function( data ) {
-					console.log( data );
-				});
+		fs.readFile(packageName, function(err, data){
+			if ( err || !stats.isFile() ) {
+				console.log( err );
+				return false;
+			}
+			else {
+				var boundary = "gfyufgugvcibg";
+				var options = {
+					host: settings.base_host,
+					port: 80,
+					method: 'POST',
+					path: settings.base_path+"uploader.php",
+					headers: {
+						"Content-type" : "multipart/form-data; boundary="+boundary
+					}
+				};
+				var req = http.request( options, function( res ) {
+					res.setEncoding('utf8');
+					res.on( 'data', function( data ) {
+						console.log( data );
+					});
 
-				res.on( 'error', function( err ) {
-					console.log( err );
+					res.on( 'end', function() {
+						//console.log( "end" );
+					});
+
+					res.on( 'error', function( err ) {
+						console.log( err );
+					});
+				
 				});
-			
-			});
-			
-			
-			
-		}
-		req.end();
+				req.write('--'+boundary+'\r\n');
+				req.write('Content-Disposition: form-data; name="foo"; filename="'+dir+'.tar.gz"\r\n');
+				req.write('Content-Type: application/octet-stream\r\n\r\n');
+				req.write(data+'\r\n');
+				req.write('--'+boundary+'\r\n');
+				req.write('Content-Disposition: form-data; name="upload"\r\n\r\n');
+				req.write('Upload\r\n');
+				req.write('--'+boundary+'--');
+				req.end();
+			}
+		});
 		return true;
 	});
 }
@@ -333,7 +336,7 @@ function installPackage ( package, version ) {
 		console.log( "Already installed "+package+"-"+version );
 		return true;
 	}
-	else if( packages[package].version != version ) {
+	else if( packages[package].version.indexOf(version)==-1 ) {
 		console.log( "No such package "+package+"-"+version );
 		return false;
 	}
@@ -349,13 +352,6 @@ function installPackage ( package, version ) {
 
 		if( packages[package].type == undefined || packages[package].type != "meta" ) {
 			downloadPackage( package+"-"+version );
-			fs.rename( settings.install_dir+"/downloads/"+package+"-"+version+".tar.gz", settings.install_dir+"/downloaded/"+package+"-"+version+".tar.gz", function ( err ) {
-				if ( err ) console.log( err );
-				else {
-					console.log( "Installed "+package+"-"+version );
-					return true;
-				}
-			});
 		}
 	}
 }
@@ -378,6 +374,13 @@ var downloadPackage = function (package) {
 		res.on('end', function () {
 			clearInterval(progress);
 			console.log("Package downloaded");
+			fs.rename( settings.install_dir+"/downloads/"+package+".tar.gz", settings.install_dir+"/downloaded/"+package+".tar.gz", function ( err ) {
+				if ( err ) console.log( err );
+				else {
+					console.log( "Installed "+package );
+					return true;
+				}
+			});
 		});
 		// Save file
 		util.pump(res, fs.createWriteStream(settings['install_dir']+'/downloads/'+package+'.tar.gz'));
