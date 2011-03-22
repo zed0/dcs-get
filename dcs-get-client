@@ -1,0 +1,77 @@
+#!/var/tmp/dcs-get/bin/node-0.4.2
+
+//This is the dcs-get client, use this for stuff.
+
+var dcsGet = require( "/var/tmp/dcs-get/bin/dcs-get-api" );
+
+if (process.argv[2] === undefined) {
+	console.log("Try dcs-get help");
+	return;
+}
+else {
+	switch (process.argv[2]) {
+		case "list":
+		case "l":
+			dcsGet.listPackages();
+			break;
+		case "list-dev":
+		case "ld":
+			dcsGet.listPackagesDev();
+			break;
+		case "clean":
+		case "c":
+			dcsGet.clean();
+			break;
+		case "search":
+		case "s":
+			dcsGet.search( process.argv[3] );
+			break;
+		case "install";
+		case "i":
+			process.argv.shift();
+			process.argv.shift();
+			process.argv.shift();
+			dcsGet.install( process.argv );
+			break;			
+		case "reinstall":
+		case "r":
+			process.argv.shift();
+			process.argv.shift();
+			process.argv.shift();
+			dcsGet.reinstall( process.argv );
+			break;			
+		case "list-installed":
+		case "li":
+			dcsGet.listInstalled();
+			break;
+		case "gensymlinks":
+		case "g":
+			process.argv.shift();
+			process.argv.shift();
+			process.argv.shift();
+			dcsGet.genSymlinks( process.argv );
+			break;
+		case "package":
+		case "p":
+			process.argv.shift();
+			process.argv.shift();
+			process.argv.shift();
+			dcsGet.package( process.argv );
+			break;
+		case "upload":
+		case "u":
+			process.argv.shift();
+			process.argv.shift();
+			process.argv.shift();
+			dcsGet.upload( process.argv );
+			break;
+		case "help":
+			dcsGet.help();
+			break;
+		case "commands":
+			console.log("commands search install reinstall list list-dev clean gensymlinks package help upload");
+			break;
+		default:
+			console.log("Try dcs-get help");
+	}	
+}
