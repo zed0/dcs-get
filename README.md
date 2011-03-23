@@ -22,8 +22,9 @@ instructions
 
 ## Todo list
 
-* probably better searching
-* Request option
+* Server persistance.
+* Handle multiple versions of same package.
+
 
 ## License
 

@@ -3,54 +3,6 @@
 //This is now the api. Exporting functions for fun and profit.
 
 // Useful settings
-var settings = {
-	'install_dir': '/var/tmp/dcs-get',
-	'base_host': 'backus.uwcs.co.uk',
-	'base_path': '/dcs-get/',
-	'debug': true
-};
-
-// Global variable for packages
-var packages;
-
-// Directories to ignore when listing packages.
-var ignore = ( "bin", "cleanup", "downloads", "downloaded", "lib", "home" );
-// Node modules
-var 	http = require('http'),
-	fs = require('fs'),
-	util = require('util'),
-	spawn = require('child_process').spawn,
-	exec = require('child_process').exec,
-	path = require( 'path' );
-
-// Grab the package list from backus
-http.get({
-	host: settings['base_host'],
-	port: 80,
-	path: settings['base_path']+'packages.json'
-}, function(res) {
-	res.setEncoding('utf8');
-	var data = '';
-	res.on('data', function (chunk) {
-		data += chunk;
-	});
-	res.on('end', function () {
-		try {
-			packages = JSON.parse(data);
-			packages = sortObject(packages);
-		} catch (e) {
-			console.log("Error: Problem with package data");
-			if (settings.debug) console.log(e);
-			return;
-		}
-		// We have the package data and are ready to go
-		handleCLI();
-	});
-}).on('error', function(e) {
-	console.log("Error: Problem downloading package list from backus");
-	if (settings.debug) console.log(e);
-
-});
 
 exports.listPackages = function() {
 	var package;
@@ -341,71 +293,9 @@ function installPackage ( package, version ) {
 
 // Function to download a file, while extracting it
 // TODO: Add callbacks (progress and complete)
-var downloadPackage = function (package) {
-	http.get({
-	        host: settings['base_host'],
-        	port: 80,
-	        path: settings['base_path']+'packages/'+package+'.tar.gz'
-	}, function(res) {
-		var downloaded = 0;
-		res.on('data', function (chunk) {
-			downloaded += chunk.length;
-		});
-		var progress = setInterval(function() {
-			console.log(Math.round((downloaded/res.headers['content-length'])*100)+'%');
-		}, 50);
-		res.on('end', function () {
-			clearInterval(progress);
-			console.log("Package downloaded");
-			fs.rename( settings.install_dir+"/downloads/"+package+".tar.gz", settings.install_dir+"/downloaded/"+package+".tar.gz", function ( err ) {
-				if ( err ) console.log( err );
-				else {
-					console.log( "Installed "+package );
-					return true;
-				}
-			});
-		});
-		// Save file
-		util.pump(res, fs.createWriteStream(settings['install_dir']+'/downloads/'+package+'.tar.gz'));
-		// Extract contents
-		var tar = spawn('tar', ['zx','-C', settings['install_dir']]);
-		util.pump(res, tar.stdin);
-		// Calculate md5sum
-		var md5sum = spawn('md5sum');
-		util.pump(res, md5sum.stdin);
-		var md5hash = '';
-		md5sum.stdout.on('data', function (chunk) {
-			md5hash += chunk;
-		})
-		md5sum.stdout.on('end', function () {
-			console.log("File hash: "+md5hash);
-		});
-	}).on('error', function(e) {
-	        console.log("Error: Problem downloading package.");
-        	if (settings.debug) console.log(e);
-	});
-}
 
 //Utility functions and stuff
 
 function isInstalled( package, version ) {
 	return path.existsSync( settings.install_dir+"/"+package+"-"+version );
-}
-
-function sortObject(o) {
-    var sorted = {},
-    key, a = [];
-
-    for (key in o) {
-        if (o.hasOwnProperty(key)) {
-                a.push(key);
-        }
-    }
-
-    a.sort();
-
-    for (key = 0; key < a.length; key++) {
-        sorted[a[key]] = o[a[key]];
-    }
-    return sorted;
 }

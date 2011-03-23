@@ -1,0 +1,133 @@
+#!/var/tmp/dcs-get/bin/node-0.4.2
+
+var settings = {
+	'install_dir': '/var/tmp/dcs-get',
+	'base_host': 'backus.uwcs.co.uk',
+	'base_path': '/dcs-get/',
+	'debug': true
+};
+
+// Global variable for packages
+var packages;
+
+// Node modules
+var 	http = require('http'),
+	fs = require('fs'),
+	util = require('util'),
+	spawn = require('child_process').spawn,
+	exec = require('child_process').exec,
+	path = require( 'path' ),
+	net = require( 'net' );
+
+// Grab the package list from backus
+	
+http.get({
+	host: settings['base_host'],
+	port: 80,
+	path: settings['base_path']+'packages.json'
+}, function(res) {
+	res.setEncoding('utf8');
+	var data = '';
+	res.on('data', function (chunk) {
+		data += chunk;
+	});
+	res.on('end', function () {
+		try {
+			packages = JSON.parse(data);
+			packages = sortObject(packages);
+		} catch (e) {
+			console.log("Error: Problem with package data");
+			if (settings.debug) console.log(e);
+			return;
+		}
+	});
+	}).on('error', function(e) {
+	console.log("Error: Problem downloading package list from backus");
+	if (settings.debug) console.log(e);
+
+	});
+
+var server = net.createServer( function( stream ) {
+	stream.on( 'data', function ( data ) {
+		var args = data.toString().replace(/\r\n$/,"").split(" ");
+		switch( args[0] ) {
+			case "INSTALL":
+				var temp = args[1].split("-");
+				console.log( temp );
+				downloadPackage( args[1], temp[0], temp[1] );
+				break;
+			case "GETJSON":
+				stream.write( JSON.stringify( packages ) );
+				break;
+			default:
+				stream.write( "No such function." );
+		}
+	});
+
+}).listen( 9020, "localhost" );
+
+function downloadPackage( package, packageName, packageVersion ) {
+	http.get({
+	        host: settings['base_host'],
+        	port: 80,
+	        path: settings['base_path']+'packages/'+package+'.tar.gz'
+	}, function(res) {
+		var downloaded = 0;
+		packages[packageName].installed = 0;
+		res.on('data', function (chunk) {
+			downloaded += chunk.length;
+			packages[packageName].installed = downloaded;
+		});
+		/*var progress = setInterval(function() {
+			console.log(Math.round((downloaded/res.headers['content-length'])*100)+'%');
+		}, 50);*/
+		res.on('end', function () {
+			//clearInterval(progress);
+			console.log("Package downloaded");
+			packages[packageName].installed = true;
+			fs.rename( settings.install_dir+"/downloads/"+package+".tar.gz", settings.install_dir+"/downloaded/"+package+".tar.gz", function ( err ) {
+				if ( err ) console.log( err );
+				else {
+					console.log( "Installed "+package );
+					return true;
+				}
+			});
+		});
+		// Save file
+		util.pump(res, fs.createWriteStream(settings['install_dir']+'/downloads/'+package+'.tar.gz'));
+		// Extract contents
+		var tar = spawn('tar', ['zx','-C', settings['install_dir']]);
+		util.pump(res, tar.stdin);
+		// Calculate md5sum
+		var md5sum = spawn('md5sum');
+		util.pump(res, md5sum.stdin);
+		var md5hash = '';
+		md5sum.stdout.on('data', function (chunk) {
+			md5hash += chunk;
+		})
+		md5sum.stdout.on('end', function () {
+			console.log("File hash: "+md5hash);
+		});
+	}).on('error', function(e) {
+	        console.log("Error: Problem downloading package.\n"+package+"\n"+packageName+"\n"+packageVersion);
+        	if (settings.debug) console.log(e);
+	});
+}
+
+function sortObject(o) {
+    var sorted = {},
+    key, a = [];
+
+    for (key in o) {
+        if (o.hasOwnProperty(key)) {
+                a.push(key);
+        }
+    }
+
+    a.sort();
+
+    for (key = 0; key < a.length; key++) {
+        sorted[a[key]] = o[a[key]];
+    }
+    return sorted;
+}
