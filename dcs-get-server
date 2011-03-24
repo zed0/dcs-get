@@ -48,13 +48,23 @@ http.get({
 	});
 
 var server = net.createServer( function( stream ) {
+	stream.setEncoding('utf8');
 	stream.on( 'data', function ( data ) {
-		var args = data.toString().replace(/\r\n$/,"").split(" ");
+		console.log(data);
+		var args = data.toString().replace(/[\t\r\n]/,"").split(" ");
+		console.log(args);
 		switch( args[0] ) {
 			case "INSTALL":
-				var temp = args[1].split("-");
-				console.log( temp );
-				downloadPackage( args[1], temp[0], temp[1] );
+				if(args[1]!=null)
+				{
+					var temp = args[1].split("-");
+					console.log( temp );
+					downloadPackage( args[1], temp[0], temp[1] );
+				}
+				else
+				{
+					stream.write("ERROR");
+				}
 				break;
 			case "GETJSON":
 				stream.write( JSON.stringify( packages ) );
@@ -64,13 +74,13 @@ var server = net.createServer( function( stream ) {
 		}
 	});
 
-}).listen( 9020, "localhost" );
+}).listen('/tmp/dcs-get.sock');
 
 function downloadPackage( package, packageName, packageVersion ) {
 	http.get({
-	        host: settings['base_host'],
-        	port: 80,
-	        path: settings['base_path']+'packages/'+package+'.tar.gz'
+		host: settings['base_host'],
+		port: 80,
+		path: settings['base_path']+'packages/'+package+'.tar.gz'
 	}, function(res) {
 		var downloaded = 0;
 		packages[packageName].installed = 0;
