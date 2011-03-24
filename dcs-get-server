@@ -1,14 +1,10 @@
 #!/var/tmp/dcs-get/bin/node-0.4.2
 
-var settings = {
-	'install_dir': '/var/tmp/dcs-get',
-	'base_host': 'backus.uwcs.co.uk',
-	'base_path': '/dcs-get/',
-	'debug': true
-};
-
-// Global variable for packages
-var packages;
+/*
+This is the server that runs the package management and download processes.
+We can download in parallel by spawning multiple instances of the downloadPackage function.
+Keep track of downloaded packages in here, rather than downloading the JSON every time we run dcs-get.
+*/
 
 // Node modules
 var 	http = require('http'),
@@ -19,8 +15,19 @@ var 	http = require('http'),
 	path = require( 'path' ),
 	net = require( 'net' );
 
+var settings = {
+	'install_dir': '/var/tmp/dcs-get',
+	'base_host': 'backus.uwcs.co.uk',
+	'base_path': '/dcs-get/',
+	'debug': true,
+	'socket': '/tmp/dcs-get.sock'
+};
+
+// Global variable for packages
+var packages;
+
+
 // Grab the package list from backus
-	
 http.get({
 	host: settings['base_host'],
 	port: 80,
@@ -41,38 +48,40 @@ http.get({
 			return;
 		}
 	});
-	}).on('error', function(e) {
+}).on('error', function(e) {
 	console.log("Error: Problem downloading package list from backus");
 	if (settings.debug) console.log(e);
-
-	});
+});
 
 var server = net.createServer( function( stream ) {
 	stream.setEncoding('utf8');
 	stream.on( 'data', function ( data ) {
-		var args = data.toString().replace(/[\t\r\n]/,"").split(" ");
+		//For testing purposes/niceness. telnet ends with \r\n, socat with \n and we don't want tabs anyway.
+		var args = data.toString().replace(/[\n,\r,\t]/,"").split(" ");
+		
 		switch( args[0] ) {
 			case "INSTALL":
-				if(args[1]!=null)
-				{
-					var temp = args[1].split("-");
-					console.log( temp );
-					downloadPackage( args[1], temp[0], temp[1] );
-				}
-				else
-				{
-					stream.write("ERROR");
-				}
+
+				var temp = args[1].split("-");
+				downloadPackage( args[1], temp[0], temp[1] );
+				stream.end();
 				break;
 			case "GETJSON":
-				stream.write( JSON.stringify( packages ) );
+				
+				stream.end( JSON.stringify( packages ));
 				break;
+			
+			case "ISINSTALLED":
+				
+				var temp = args[1].split("-");
+				packages[temp[0]].installed ? stream.end( "true" ) : stream.end( "false" );
+				break;
+				
 			default:
-				stream.write( "No such function." );
+				stream.end( "No such function." );
 		}
 	});
-
-}).listen('/tmp/dcs-get.sock');
+}).listen(settings['socket']);
 
 function downloadPackage( package, packageName, packageVersion ) {
 	http.get({
@@ -121,6 +130,8 @@ function downloadPackage( package, packageName, packageVersion ) {
 			if (settings.debug) console.log(e);
 	});
 }
+
+
 
 function sortObject(o) {
 	var sorted = {},

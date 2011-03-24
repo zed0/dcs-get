@@ -1,9 +1,14 @@
 #!/var/tmp/dcs-get/bin/node-0.4.2
-
-var net = require('net');
-var fs = require('fs');
-
 //This is now the api. Exporting functions for fun and profit.
+
+// Node modules
+var 	http = require('http'),
+	fs = require('fs'),
+	util = require('util'),
+	spawn = require('child_process').spawn,
+	exec = require('child_process').exec,
+	path = require( 'path' ),
+	net = require( 'net' );
 
 // Useful settings
 var settings = {
@@ -93,7 +98,7 @@ exports.reinstall = function( packageList ) {
 			console.log( "Package "+package+" does not exist." );
 		}
 	});
-}		
+}
 
 exports.listInstalled = function() {
 	getServerState(function(packages){
@@ -345,6 +350,16 @@ function installPackage ( package, version ) {
 // TODO: Add callbacks (progress and complete)
 
 //Utility functions and stuff
+
+function queryServer( command ) {
+	
+	var sock = net.createConnection( settings['socket'] );
+	sock.setEncoding('utf8');
+	sock.write( command );
+	sock.on( 'data', function (data ) { 
+		return data;
+	});
+}
 
 function isInstalled( package, version ) {
 	return path.existsSync( settings.install_dir+"/"+package+"-"+version );
