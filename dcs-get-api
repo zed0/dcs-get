@@ -3,6 +3,24 @@
 //This is now the api. Exporting functions for fun and profit.
 
 // Useful settings
+var settings = {
+	'install_dir': '/var/tmp/dcs-get',
+	'base_host': 'backus.uwcs.co.uk',
+	'base_path': '/dcs-get/',
+	'debug': true
+};
+
+// Global variable for packages
+var packages;
+
+// Node modules
+var 	http = require('http'),
+	fs = require('fs'),
+	util = require('util'),
+	spawn = require('child_process').spawn,
+	exec = require('child_process').exec,
+	path = require( 'path' ),
+	net = require( 'net' );
 
 exports.listPackages = function() {
 	var package;
@@ -38,11 +56,11 @@ exports.install = function( packageList ) {
 	packageList.forEach( function ( package ) {
 		var tmp = package.split( '-' );
 		if ( tmp[1] != undefined ) {
-			console.log( tmp[1] );
+			//console.log( tmp[1] );
 			installPackage( tmp[0], tmp[1] );
 		}
 		else if ( packages[tmp[0]] != undefined ) {
-			console.log( packages[tmp[0]].version[0] );
+			//console.log( packages[tmp[0]].version[0] );
 			installPackage( tmp[0], packages[tmp[0]].version[0] );
 		}
 		else {
@@ -295,6 +313,16 @@ function installPackage ( package, version ) {
 // TODO: Add callbacks (progress and complete)
 
 //Utility functions and stuff
+
+function queryServer( command ) {
+	
+	var sock = net.createConnection( "/var/tmp/dcs-get/pony.sock" )
+	sock.setEncoding('utf8');
+	sock.write( command );
+	sock.on( 'data', function (data ) { 
+		return data;
+	});
+}
 
 function isInstalled( package, version ) {
 	return path.existsSync( settings.install_dir+"/"+package+"-"+version );

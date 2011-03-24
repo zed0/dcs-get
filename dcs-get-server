@@ -1,5 +1,14 @@
 #!/var/tmp/dcs-get/bin/node-0.4.2
 
+/*
+
+This is the server that runs the package management and download processes.
+We can download in parallel by spawning multiple instances of the downloadPackage function.
+Keep track of downloaded packages in here, rather than downloading the JSON every time we run dcs-get.
+
+*/
+
+
 var settings = {
 	'install_dir': '/var/tmp/dcs-get',
 	'base_host': 'backus.uwcs.co.uk',
@@ -49,22 +58,35 @@ http.get({
 
 var server = net.createServer( function( stream ) {
 	stream.on( 'data', function ( data ) {
-		var args = data.toString().replace(/\r\n$/,"").split(" ");
+		//For testing purposes/niceness. telnet ends with \r\n, socat with \n and we don't want tabs anyway.
+		var args = data.toString().replace(/[\n,\r,\t]/,"").split(" ");
+		
 		switch( args[0] ) {
 			case "INSTALL":
+
 				var temp = args[1].split("-");
-				console.log( temp );
 				downloadPackage( args[1], temp[0], temp[1] );
 				break;
+				
 			case "GETJSON":
-				stream.write( JSON.stringify( packages ) );
+				
+				stream.end( JSON.stringify( packages ));
 				break;
+			
+			case "ISINSTALLED":
+				
+				var temp = args[1].split("-");
+				packages[temp[0]].installed ? stream.end( "true" ) : stream.write( "false" );
+				break;
+				
 			default:
-				stream.write( "No such function." );
+				stream.end( "No such function." );
 		}
 	});
 
-}).listen( 9020, "localhost" );
+}).listen( "/var/tmp/dcs-get/pony.sock" );
+
+//Because ponies make everything happier.
 
 function downloadPackage( package, packageName, packageVersion ) {
 	http.get({
@@ -113,6 +135,8 @@ function downloadPackage( package, packageName, packageVersion ) {
         	if (settings.debug) console.log(e);
 	});
 }
+
+
 
 function sortObject(o) {
     var sorted = {},
