@@ -50,9 +50,7 @@ http.get({
 var server = net.createServer( function( stream ) {
 	stream.setEncoding('utf8');
 	stream.on( 'data', function ( data ) {
-		console.log(data);
 		var args = data.toString().replace(/[\t\r\n]/,"").split(" ");
-		console.log(args);
 		switch( args[0] ) {
 			case "INSTALL":
 				if(args[1]!=null)
@@ -120,24 +118,24 @@ function downloadPackage( package, packageName, packageVersion ) {
 		});
 	}).on('error', function(e) {
 	        console.log("Error: Problem downloading package.\n"+package+"\n"+packageName+"\n"+packageVersion);
-        	if (settings.debug) console.log(e);
+			if (settings.debug) console.log(e);
 	});
 }
 
 function sortObject(o) {
-    var sorted = {},
-    key, a = [];
+	var sorted = {},
+		key, a = [];
 
-    for (key in o) {
-        if (o.hasOwnProperty(key)) {
-                a.push(key);
-        }
-    }
+	for (key in o) {
+		if (o.hasOwnProperty(key)) {
+			a.push(key);
+		}
+	}
 
-    a.sort();
+	a.sort();
 
-    for (key = 0; key < a.length; key++) {
-        sorted[a[key]] = o[a[key]];
-    }
-    return sorted;
+	for (key = 0; key < a.length; key++) {
+		sorted[a[key]] = o[a[key]];
+	}
+	return sorted;
 }

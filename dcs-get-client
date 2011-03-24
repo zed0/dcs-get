@@ -2,7 +2,8 @@
 
 //This is the dcs-get client, use this for stuff.
 
-var dcsGet = require( "/var/tmp/dcs-get/bin/dcs-get-api" );
+//var dcsGet = require( "/var/tmp/dcs-get/bin/dcs-get-api" );
+var dcsGet = require( "./dcs-get-api" );
 
 if (process.argv[2] === undefined) {
 	console.log("Try dcs-get help");
@@ -26,7 +27,7 @@ else {
 		case "s":
 			dcsGet.search( process.argv[3] );
 			break;
-		case "install";
+		case "install":
 		case "i":
 			process.argv.shift();
 			process.argv.shift();
