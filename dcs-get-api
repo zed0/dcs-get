@@ -130,7 +130,7 @@ exports.reinstall = function( packageList ) {
 				console.log( "Package "+package+" does not exist." );
 			}
 		});
-	}
+	});
 }
 
 exports.listInstalled = function() {

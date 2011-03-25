@@ -68,15 +68,15 @@ var server = net.createServer( function( stream ) {
 	
 	stream.on( 'connect', function () {
 		fs.readdir( settings.install_dir, function( files ) {
-			files.forEach( function( file ) {
+			for(var file in files) {
 				if( ignore.indexOf( file ) == -1 ) {
 					var temp = file.split("-");
 					packages[temp[0]].installed = true;
 				}
-			});
+			}
 		});
 	});
-	
+
 	stream.on( 'data', function ( data ) {
 		
 		//For testing purposes/niceness: telnet ends with \r\n, socat with \n and we don't want tabs anyway.
