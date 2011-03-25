@@ -17,13 +17,17 @@ var settings = {
 
 function getServerState(callback){
 	var server = net.createConnection(settings['socket']);
+	var response = '';
 	server.setEncoding('utf8');
 	server.on('connect', function(sock)
 	{
 		server.write('GETJSON', 'utf8');
 	});
 	server.on('data', function(data){
-		callback(JSON.parse(data));
+		response+=data;
+	});
+	server.on('end', function(){
+		callback(JSON.parse(response));
 	});
 	server.on('error', function(err){
 		console.log('error: '+err);

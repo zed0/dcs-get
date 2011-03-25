@@ -58,10 +58,8 @@ var server = net.createServer( function( stream ) {
 	stream.on( 'data', function ( data ) {
 		//For testing purposes/niceness. telnet ends with \r\n, socat with \n and we don't want tabs anyway.
 		var args = data.toString().replace(/[\n,\r,\t]/,"").split(" ");
-		
 		switch( args[0] ) {
 			case "INSTALL":
-
 				var temp = args[1].split("-");
 				downloadPackage( args[1], temp[0], temp[1] );
 				stream.end();
@@ -80,6 +78,9 @@ var server = net.createServer( function( stream ) {
 			default:
 				stream.end( "No such function." );
 		}
+	});
+	stream.on('error', function(err){
+		console.log(err);
 	});
 }).listen(settings['socket']);
 
