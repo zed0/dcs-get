@@ -2,7 +2,7 @@
 
 # Check that the versions of dcs-get are the same
 # VERSION should be updated every time the bash script is edited
-VERSION="1.0"
+VERSION="2.0"
 if [ ! "$1" = $VERSION ]
 then
 	echo "Please update to the latest version of dcs-get at http://backus.uwcs.co.uk/dcs-get/"
@@ -20,7 +20,7 @@ then
 	fi
 fi
 
-# If the directory doesn't exist create it, cleanup script and grab dcs-get script
+# If the directory doesn't exist create it, cleanup script and grab dcs-get client,api and server scripts.
 if [ ! -d /var/tmp/dcs-get ]
 then
 	mkdir /var/tmp/dcs-get
@@ -34,8 +34,17 @@ then
 	echo -e "#!/usr/bin/perl\nuse File::Path 'rmtree';\nrmtree([ '/var/tmp/dcs-get' ]);" > cleanup
 	chmod a+rx cleanup
 	chmod ug+s cleanup
-	# Get dcs-get
+
+	# Get node to execute client
+	wget http://backus.uwcs.co.uk/dcs-get/packages/node-0.4.2.tar.gz
+	tar zxf node-0.4.2.tar.gz
+	
+	#Get dcs-get scripts.
 	cd bin
-	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get
-	chmod u+x dcs-get
+	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-client
+	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-api
+	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-server
+	chmod u+x dcs-get-client
+	chmod u+x dcs-get-server
+	.dcs-get-server
 fi

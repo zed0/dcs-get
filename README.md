@@ -7,6 +7,12 @@ without root access needing specific linux applications.
 
 **dcs-get**: Main script
 
+**dcs-get-client**: Node.js implementation of the script
+
+**dcs-get-api**: Api between the client and the server
+
+**dcs-get-server**: Server for managing multiple/parallel downloads.
+
 **dcs-get-install**: Install script
 
 **index.php**: Webpage containing installation 
@@ -24,7 +30,6 @@ instructions
 
 * Server persistance.
 * Handle multiple versions of same package.
-
 
 ## License
 
