@@ -41,6 +41,16 @@ else {
 			process.argv.shift();
 			dcsGet.reinstall( process.argv );
 			break;			
+		case "list-downloading":
+			dcsGet.listDownloading(function(packageList){
+				for(var packageName in packageList)
+				{
+					dcsGet.getProgress(packageName, function(packageName, downloaded, totalSize){
+						console.log(packageName + ': ' + downloaded + '/' + totalSize);
+					});
+				}
+			});
+			break;
 		case "list-installed":
 		case "li":
 			dcsGet.listInstalled();

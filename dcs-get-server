@@ -90,19 +90,15 @@ function downloadPackage( package, packageName, packageVersion ) {
 		port: 80,
 		path: settings['base_path']+'packages/'+package+'.tar.gz'
 	}, function(res) {
-		var downloaded = 0;
-		packages[packageName].installed = 0;
+		packages[packageName].installed = 2;
+		packages[packageName].downloaded = 0;
 		res.on('data', function (chunk) {
-			downloaded += chunk.length;
-			packages[packageName].installed = downloaded;
+			packages[packageName].totalSize = res.headers['content-length'];
+			packages[packageName].downloaded += chunk.length;
 		});
-		/*var progress = setInterval(function() {
-			console.log(Math.round((downloaded/res.headers['content-length'])*100)+'%');
-		}, 50);*/
 		res.on('end', function () {
-			//clearInterval(progress);
 			console.log("Package downloaded");
-			packages[packageName].installed = true;
+			packages[packageName].installed = 1;
 			fs.rename( settings.install_dir+"/downloads/"+package+".tar.gz", settings.install_dir+"/downloaded/"+package+".tar.gz", function ( err ) {
 				if ( err ) console.log( err );
 				else {

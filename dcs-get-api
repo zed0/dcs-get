@@ -58,6 +58,30 @@ exports.listPackagesDev = function() {
 	});
 }
 
+exports.listDownloading = function(callback) {
+	var packageList = [];
+	getServerState(function(packages)
+	{
+		for (packageName in packages) {
+			package = packages[packageName];
+			if (package.installed == 2 && package.downloaded != undefined) {
+				packageList[packageName] = package;
+			}
+		}
+		callback(packageList);
+	});
+}
+
+exports.getProgress = function(package, callback){
+	getServerState(function(packages)
+	{
+		if(packages[package] !== undefined)
+		{
+			callback(package, packages[package].downloaded, packages[package].totalSize);
+		}
+	});
+}
+
 exports.clean = function() {
 	exec('rm -rf '+settings['install_dir']);
 	console.log("dcs-get completely removed");
@@ -348,23 +372,4 @@ function installPackage ( package, version ) {
 			}
 		}
 	});
-}
-
-// Function to download a file, while extracting it
-// TODO: Add callbacks (progress and complete)
-
-//Utility functions and stuff
-
-function queryServer( command ) {
-	
-	var sock = net.createConnection( settings['socket'] );
-	sock.setEncoding('utf8');
-	sock.write( command );
-	sock.on( 'data', function (data ) { 
-		return data;
-	});
-}
-
-function isInstalled( package, version ) {
-	return path.existsSync( settings.install_dir+"/"+package+"-"+version );
 }
