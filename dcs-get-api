@@ -34,6 +34,25 @@ function getServerState(callback){
 	});
 }
 
+function getDownloadingList(callback){
+	var server = net.createConnection(settings['socket']);
+	var response = '';
+	server.setEncoding('utf8');
+	server.on('connect', function(sock)
+	{
+		server.write('DOWNLOADING', 'utf8');
+	});
+	server.on('data', function(data){
+		response+=data;
+	});
+	server.on('end', function(){
+		callback(JSON.parse(response));
+	});
+	server.on('error', function(err){
+		console.log('error: '+err);
+	});
+}
+
 exports.listPackages = function() {
 	var package;
 	getServerState(function(packages)
@@ -58,26 +77,13 @@ exports.listPackagesDev = function() {
 	});
 }
 
-exports.listDownloading = function(callback) {
-	var packageList = [];
-	getServerState(function(packages)
-	{
-		for (packageName in packages) {
-			package = packages[packageName];
-			if (package.installed == 2 && package.downloaded != undefined) {
-				packageList[packageName] = package;
-			}
+exports.listDownloading = function( callback ) {
+	getDownloadingList( function( packages ) {
+		if ( packages.length == undefined ) {
+			console.log( "No packages are currently downloading." );
 		}
-		callback(packageList);
-	});
-}
-
-exports.getProgress = function(package, callback){
-	getServerState(function(packages)
-	{
-		if(packages[package] !== undefined)
-		{
-			callback(package, packages[package].downloaded, packages[package].totalSize);
+		for( package in packages ) {
+			callback( package, packages[package].downloaded, packages[package].totalSize );			
 		}
 	});
 }
@@ -89,11 +95,11 @@ exports.clean = function() {
 
 exports.search = function( pattern ) {
 	getServerState( function( packages ) {
-		packages.forEach( function( package ) {
-			if( packages[package].indexOf( pattern ) != -1 || packages[package].description.indexOf( pattern ) != -1 ) {
-				console.log( packages[package] + "-" + packages[package].description );
+		for( var package in packages ) {
+			if( package.indexOf( pattern ) != -1 || packages[package].description.indexOf( pattern ) != -1 ) {
+				console.log( package + " - " + packages[package].description );
 			}
-		});
+		}
 	});
 }
 
@@ -152,7 +158,7 @@ exports.genSymlinks = function( packageList ) {
 
 exports.package = function ( packageList ) {
 	packageList.forEach( function ( package ) {
-			packageFiles( package );
+		packageFiles( package );
 	});
 }
 
@@ -349,7 +355,7 @@ function installPackage ( package, version ) {
 			if( packages[package].dependencies != undefined ) {
 				var deps = packages[package].dependencies;
 				deps.forEach( function ( dependency ) {
-					if( !isInstalled( dependency[0], dependency[1] ) ) {
+					if( !packages[package].installed ) {
 						installPackage( dependency[0], dependency[1] );
 					}
 				});

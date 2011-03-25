@@ -46,5 +46,5 @@ then
 	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-server
 	chmod u+x dcs-get-client
 	chmod u+x dcs-get-server
-	.dcs-get-server
+	./dcs-get-server
 fi

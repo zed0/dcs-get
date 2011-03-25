@@ -25,6 +25,9 @@ var settings = {
 // Global variable for packages
 var packages;
 
+//Packages being downloaded.
+var downloading = {};
+
 //Things to ignore in readdir.
 var ignore = ( "bin", "lib", "downloads", "downloaded", "cleanup" );
 
@@ -96,6 +99,11 @@ var server = net.createServer( function( stream ) {
 				stream.end( JSON.stringify( packages ));
 				break;
 			
+			case "DOWNLOADING":
+				
+				stream.end( JSON.stringify( downloading ) );
+				break;
+				
 			default:
 				stream.end( "No such function." );
 		}
@@ -111,15 +119,16 @@ function downloadPackage( package, packageName, packageVersion ) {
 		port: 80,
 		path: settings['base_path']+'packages/'+package+'.tar.gz'
 	}, function(res) {
-		packages[packageName].installed = 2;
-		packages[packageName].downloaded = 0;
+		downloading[packageName] = {};
+		downloading[packageName].downloaded = 0;
 		res.on('data', function (chunk) {
-			packages[packageName].totalSize = res.headers['content-length'];
-			packages[packageName].downloaded += chunk.length;
+			downloading[packageName].totalSize = res.headers['content-length'];
+			downloading[packageName].downloaded += chunk.length;
 		});
 		res.on('end', function () {
 			console.log("Package downloaded");
 			packages[packageName].installed = 1;
+			delete downloading[packageName];
 			fs.rename( settings.install_dir+"/downloads/"+package+".tar.gz", settings.install_dir+"/downloaded/"+package+".tar.gz", function ( err ) {
 				if ( err ) console.log( err );
 				else {
