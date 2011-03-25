@@ -1,8 +1,7 @@
 #!/var/tmp/dcs-get/bin/node-0.4.2
 
-//This is the dcs-get client, use this for stuff.
+//This is the dcs-get command line client.
 
-//var dcsGet = require( "/var/tmp/dcs-get/bin/dcs-get-api" );
 var dcsGet = require( "./dcs-get-api" );
 
 if (process.argv[2] === undefined) {

@@ -11,10 +11,9 @@ var 	http = require('http'),
 	fs = require('fs'),
 	util = require('util'),
 	spawn = require('child_process').spawn,
-	exec = require('child_process').exec,
-	path = require( 'path' ),
 	net = require( 'net' );
-
+	
+//Settings for our http/net connections and other things.
 var settings = {
 	'install_dir': '/var/tmp/dcs-get',
 	'base_host': 'backus.uwcs.co.uk',
@@ -26,6 +25,8 @@ var settings = {
 // Global variable for packages
 var packages;
 
+//Things to ignore in readdir.
+var ignore = ( "bin", "lib", "downloads", "downloaded", "cleanup" );
 
 // Grab the package list from backus
 http.get({
@@ -53,28 +54,48 @@ http.get({
 	if (settings.debug) console.log(e);
 });
 
+/*
+Create a server that manages downloads and the JSON.
+Can now keep track of downloaded packages "live" instead of reading /var/tmp/dcs-get on launch.
+
+Listens for two commands:
+INSTALL <foo> installs package foo. Dependencies are handled in the api, not here.
+GETJSON returns the packages JSON to the api.
+*/
+
 var server = net.createServer( function( stream ) {
 	stream.setEncoding('utf8');
+	
+	stream.on( 'connect', function () {
+		fs.readdir( settings.install_dir, function( files ) {
+			files.forEach( function( file ) {
+				if( ignore.indexOf( file ) == -1 ) {
+					var temp = file.split("-");
+					packages[temp[0]].installed = true;
+				}
+			});
+		});
+	});
+	
 	stream.on( 'data', function ( data ) {
-		//For testing purposes/niceness. telnet ends with \r\n, socat with \n and we don't want tabs anyway.
+		
+		//For testing purposes/niceness: telnet ends with \r\n, socat with \n and we don't want tabs anyway.
 		var args = data.toString().replace(/[\n,\r,\t]/,"").split(" ");
+		
 		switch( args[0] ) {
 			case "INSTALL":
+				
+				//We can assume package names are well-formed.
 				var temp = args[1].split("-");
 				downloadPackage( args[1], temp[0], temp[1] );
 				stream.end();
 				break;
+				
 			case "GETJSON":
 				
 				stream.end( JSON.stringify( packages ));
 				break;
 			
-			case "ISINSTALLED":
-				
-				var temp = args[1].split("-");
-				packages[temp[0]].installed ? stream.end( "true" ) : stream.end( "false" );
-				break;
-				
 			default:
 				stream.end( "No such function." );
 		}
@@ -127,8 +148,6 @@ function downloadPackage( package, packageName, packageVersion ) {
 			if (settings.debug) console.log(e);
 	});
 }
-
-
 
 function sortObject(o) {
 	var sorted = {},

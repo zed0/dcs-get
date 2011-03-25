@@ -87,10 +87,13 @@ exports.clean = function() {
 	console.log("dcs-get completely removed");
 }
 
-exports.search = function( package ) {
-	exec( 'dcs-get l | grep ' + package, function( err, stdout, stderr ) {
-		if ( err ) console.log( err );
-		console.log( stdout );
+exports.search = function( pattern ) {
+	getServerState( function( packages ) {
+		packages.forEach( function( package ) {
+			if( packages[package].indexOf( pattern ) != -1 || packages[package].description.indexOf( pattern ) != -1 ) {
+				console.log( packages[package] + "-" + packages[package].description );
+			}
+		});
 	});
 }
 
@@ -114,18 +117,20 @@ exports.install = function( packageList ) {
 }
 
 exports.reinstall = function( packageList ) {
-	packageList.forEach( function ( package ) {
-		var tmp = package.split( '-' );
-		if ( tmp[1] != undefined ) {
-			reinstallPackage( tmp[0], tmp[1] );
-		}
-		else if ( packages[tmp[0]] != undefined ) {
-			reinstallPackage( tmp[0], packages[tmp[0]].version[0] );
-		}
-		else {
-			console.log( "Package "+package+" does not exist." );
-		}
-	});
+	getServerState(function(packages){
+		packageList.forEach( function ( package ) {
+			var tmp = package.split( '-' );
+			if ( tmp[1] != undefined ) {
+				reinstallPackage( tmp[0], tmp[1] );
+			}
+			else if ( packages[tmp[0]] != undefined ) {
+				reinstallPackage( tmp[0], packages[tmp[0]].version[0] );
+			}
+			else {
+				console.log( "Package "+package+" does not exist." );
+			}
+		});
+	}
 }
 
 exports.listInstalled = function() {
@@ -137,12 +142,6 @@ exports.listInstalled = function() {
 			}
 		}
 	});
-	/*
-	fs.readdir( settings.install_dir, function ( err, file ) {
-		if ( ignore.indexOf( file ) == -1 ) {
-			console.log( file );
-		}
-	});*/
 }
 
 exports.genSymlinks = function( packageList ) {
