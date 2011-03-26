@@ -32,7 +32,17 @@ else {
 			process.argv.shift();
 			process.argv.shift();
 			dcsGet.install( process.argv );
-			break;			
+			var id = setInterval( function () {
+				dcsGet.listDownloading( function( err, packageName, downloaded, totalSize) {
+					if ( err ) {
+						clearInterval( id );
+					}
+					else {
+						process.stdout.write( packageName + ": " + (downloaded/totalSize)*100 + "%\r");
+					}
+				});
+			}, 500 );
+			break;
 		case "reinstall":
 		case "r":
 			process.argv.shift();
@@ -41,8 +51,10 @@ else {
 			dcsGet.reinstall( process.argv );
 			break;			
 		case "list-downloading":
-			dcsGet.listDownloading( function( packageName, downloaded, totalSize) {
-				console.log(packageName + ': ' + downloaded + '/' + totalSize);
+			dcsGet.listDownloading( function( err, packageName, downloaded, totalSize) {
+				if ( !err ) {
+					process.stdout.write( packageName + ": " + (downloaded/totalSize)*100 + "%\n");
+				}
 			});
 			break;
 		case "list-installed":
