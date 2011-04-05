@@ -3,6 +3,7 @@
 //This is the dcs-get command line client.
 
 var dcsGet = require( "./dcs-get-api" );
+var tty = require('tty');
 
 if (process.argv[2] === undefined) {
 	console.log("Try dcs-get help");
@@ -36,21 +37,46 @@ else {
 				dcsGet.listDownloading(function(err, packageList) {
 					if (err) {
 						console.log(err);
-						//clearInterval( id );
+						clearInterval( id );
 					}
 					else {
 						var n = 0;
 						var totalPackageDownloaded = 0;
 						var totalPackageSize = 0;
+						//var termWidth = console.log(process.env['COLUMNS']);
+						//var termHeight = console.log(process.env['LINES']);
+						var termWidth = 50;
+						var termHeight = 100;
+
 						for(package in packageList) {
 							n++;
 							totalPackageDownloaded += packageList[package].downloaded;
 							totalPackageSize += packageList[package].totalSize;
-							process.stdout.write("\033[K" + package + ": " + (packageList[package].downloaded/packageList[package].totalSize)*100 + "%\n");
+
+							var fracDone = packageList[package].downloaded/packageList[package].totalSize;
+
+							process.stdout.write("\033[K" + package + ": " + fracDone*100 + "%\n");
+							process.stdout.write("\033[K[");
+							for (var i=0; i<(fracDone*(termWidth-2)); i++) {
+								process.stdout.write('=');
+							}
+							for (var i=0; i<((1-fracDone)*(termWidth-2)); i++) {
+								process.stdout.write(' ');
+							}
+							process.stdout.write("]\n");
 						}
 						if (n) {
+							var totalFracDone = totalPackageDownloaded/totalPackageSize;
 							process.stdout.write("\033[KTotal: " + (totalPackageDownloaded/totalPackageSize)*100 + "%\n\033[K");
-							process.stdout.write("\033[" + (n+1) + "A");
+							process.stdout.write("\033[K[");
+							for (var i=0; i<(totalFracDone*(termWidth-2)); i++) {
+								process.stdout.write('=');
+							}
+							for (var i=0; i<((1-totalFracDone)*(termWidth-2)); i++) {
+								process.stdout.write(' ');
+							}
+							process.stdout.write("]\n\033[K\n\033[K");
+							process.stdout.write("\033[" + (2*n+3) + "A");
 						} else {
 							clearInterval(id);
 						}
