@@ -12,11 +12,11 @@ var 	http = require('http'),
 
 // Useful settings
 var settings = {
-	'socket': '/tmp/dcs-get.sock'
+	'port': 8001
 }
 
 function getServerState(callback){
-	var server = net.createConnection(settings['socket']);
+	var server = net.createConnection(settings['port']);
 	var response = '';
 	server.setEncoding('utf8');
 	server.on('connect', function(sock)
@@ -35,7 +35,7 @@ function getServerState(callback){
 }
 
 function getDownloadingList(callback){
-	var server = net.createConnection(settings['socket']);
+	var server = net.createConnection(settings['port']);
 	var response = '';
 	server.setEncoding('utf8');
 	server.on('connect', function(sock)
@@ -79,12 +79,7 @@ exports.listPackagesDev = function() {
 
 exports.listDownloading = function( callback ) {
 	getDownloadingList( function( packages ) {
-		if ( packages.length == undefined ) {
-			callback( "pony", undefined, undefined, undefined );
-		}
-		for( package in packages ) {
-			callback( null, package, packages[package].downloaded, packages[package].totalSize );
-		}
+			callback(null, packages);
 	});
 }
 
@@ -367,7 +362,7 @@ function installPackage ( package, version ) {
 			}
 
 			if( packages[package].type == undefined || packages[package].type != "meta" ) {
-				var server = net.createConnection(settings['socket']);
+				var server = net.createConnection(settings['port']);
 				server.setEncoding('utf8');
 				server.on('connect', function(sock)
 				{

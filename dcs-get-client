@@ -32,13 +32,28 @@ else {
 			process.argv.shift();
 			process.argv.shift();
 			dcsGet.install( process.argv );
-			var id = setInterval( function () {
-				dcsGet.listDownloading( function( err, packageName, downloaded, totalSize) {
-					if ( err ) {
-						clearInterval( id );
+			var id = setInterval(function drawProgress() {
+				dcsGet.listDownloading(function(err, packageList) {
+					if (err) {
+						console.log(err);
+						//clearInterval( id );
 					}
 					else {
-						process.stdout.write( packageName + ": " + (downloaded/totalSize)*100 + "%\r");
+						var n = 0;
+						var totalPackageDownloaded = 0;
+						var totalPackageSize = 0;
+						for(package in packageList) {
+							n++;
+							totalPackageDownloaded += packageList[package].downloaded;
+							totalPackageSize += packageList[package].totalSize;
+							process.stdout.write("\033[K" + package + ": " + (packageList[package].downloaded/packageList[package].totalSize)*100 + "%\n");
+						}
+						if (n) {
+							process.stdout.write("\033[KTotal: " + (totalPackageDownloaded/totalPackageSize)*100 + "%\n\033[K");
+							process.stdout.write("\033[" + (n+1) + "A");
+						} else {
+							clearInterval(id);
+						}
 					}
 				});
 			}, 500 );
