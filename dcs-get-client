@@ -43,10 +43,6 @@ else {
 						var n = 0;
 						var totalPackageDownloaded = 0;
 						var totalPackageSize = 0;
-						//var termWidth = console.log(process.env['COLUMNS']);
-						//var termHeight = console.log(process.env['LINES']);
-						var termWidth = 50;
-						var termHeight = 100;
 
 						for(package in packageList) {
 							n++;
@@ -55,34 +51,21 @@ else {
 
 							var fracDone = packageList[package].downloaded/packageList[package].totalSize;
 
-							process.stdout.write("\033[K" + package + ": " + fracDone*100 + "%\n");
-							process.stdout.write("\033[K[");
-							for (var i=0; i<(fracDone*(termWidth-2)); i++) {
-								process.stdout.write('=');
-							}
-							for (var i=0; i<((1-fracDone)*(termWidth-2)); i++) {
-								process.stdout.write(' ');
-							}
-							process.stdout.write("]\n");
+							process.stdout.write("\033[K" + package + ": " + (fracDone*100).toFixed(2) + "%\n");
+							drawProgressBar(fracDone);
 						}
 						if (n) {
 							var totalFracDone = totalPackageDownloaded/totalPackageSize;
-							process.stdout.write("\033[KTotal: " + (totalPackageDownloaded/totalPackageSize)*100 + "%\n\033[K");
-							process.stdout.write("\033[K[");
-							for (var i=0; i<(totalFracDone*(termWidth-2)); i++) {
-								process.stdout.write('=');
-							}
-							for (var i=0; i<((1-totalFracDone)*(termWidth-2)); i++) {
-								process.stdout.write(' ');
-							}
-							process.stdout.write("]\n\033[K\n\033[K");
+							process.stdout.write("\033[KTotal: " + ((totalPackageDownloaded/totalPackageSize)*100).toFixed(2) + "%\n\033[K");
+							drawProgressBar(totalFracDone);
+							process.stdout.write("\033[K\n\033[K");
 							process.stdout.write("\033[" + (2*n+3) + "A");
 						} else {
 							clearInterval(id);
 						}
 					}
 				});
-			}, 500 );
+			}, 250 );
 			break;
 		case "reinstall":
 		case "r":
@@ -132,4 +115,39 @@ else {
 		default:
 			console.log("Try dcs-get help");
 	}	
+}
+
+function drawProgressBar(fracDone)
+{
+	var termWidth = tty.getWindowSize()[1];
+
+/*
+	if (fracDone <= 0.25) {
+		process.stdout.write('');
+	} else if (fracDone <= 0.75) {
+		process.stdout.write('');
+	} else {
+		process.stdout.write('');
+	}
+*/
+	process.stdout.write('\033[K[');
+	process.stdout.write('\033[32m'); //set foreground green
+	process.stdout.write('\033[41m'); //set background red
+	for (var i=0; i<(fracDone*(termWidth-3))-1; i++) {
+		process.stdout.write('█');
+		//process.stdout.write('=');
+	}
+	///*
+	if ((fracDone*(termWidth-3))%1>=0.5) {
+		process.stdout.write('▌');
+	} else {
+		process.stdout.write(' ');
+	}
+	//*/
+	//process.stdout.write('>');
+	for (var i=0; i<((1-fracDone)*(termWidth-3)); i++) {
+		process.stdout.write(' ');
+	}
+	process.stdout.write('\033[0m');
+	process.stdout.write(']\n');
 }
