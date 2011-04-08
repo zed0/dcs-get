@@ -11,7 +11,8 @@ var 	http = require('http'),
 	fs = require('fs'),
 	util = require('util'),
 	spawn = require('child_process').spawn,
-	net = require( 'net' );
+	net = require( 'net' ),
+	path = require( 'path' );
 	
 //Settings for our http/net connections and other things.
 var settings = {
@@ -19,7 +20,7 @@ var settings = {
 	'base_host': 'backus.uwcs.co.uk',
 	'base_path': '/dcs-get/',
 	'debug': true,
-	'port': 8001
+	'port': 101010
 };
 
 // Global variable for packages
@@ -29,7 +30,7 @@ var packages;
 var downloading = {};
 
 //Things to ignore in readdir.
-var ignore = ( "bin", "lib", "downloads", "downloaded", "cleanup" );
+var ignore = new Array( "bin", "lib", "downloads", "downloaded", "cleanup" );
 
 // Grab the package list from backus
 http.get({
@@ -46,6 +47,16 @@ http.get({
 		try {
 			packages = JSON.parse(data);
 			packages = sortObject(packages);
+			for (var package in packages) {
+				for (var v in packages[package].version) {
+	
+					//RAAAAAAAAAAAAAGE
+
+					if(path.existsSync(settings.install_dir+'/'+package+'-'+packages[package].version[v])) {
+						packages[package].installed = packages[package].version[v];
+					}
+				}
+			}
 		} catch (e) {
 			console.log("Error: Problem with package data");
 			if (settings.debug) console.log(e);
@@ -66,22 +77,12 @@ INSTALL <foo> installs package foo. Dependencies are handled in the api, not her
 GETJSON returns the packages JSON to the api.
 */
 
+
 var server = net.createServer( function( stream ) {
 	stream.setEncoding('utf8');
-	
-	stream.on( 'connect', function () {
-		fs.readdir( settings.install_dir, function( files ) {
-			for(var file in files) {
-				if( ignore.indexOf( file ) == -1 ) {
-					var temp = file.split("-");
-					packages[temp[0]].installed = true;
-				}
-			}
-		});
-	});
 
 	stream.on( 'data', function ( data ) {
-		
+
 		//For testing purposes/niceness: telnet ends with \r\n, socat with \n and we don't want tabs anyway.
 		var args = data.toString().replace(/[\n,\r,\t]/,"").split(" ");
 		
