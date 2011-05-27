@@ -49,11 +49,12 @@ then
 	chmod ug+s cleanup
 
 	# Get node to execute client
-	wget http://backus.uwcs.co.uk/dcs-get/packages/node-0.4.2.tar.gz -O ./downloaded/
+	cd downloaded/
+	wget http://backus.uwcs.co.uk/dcs-get/packages/node-0.4.2.tar.gz
 	tar zxf node-0.4.2.tar.gz
 	
 	#Get dcs-get scripts.
-	cd bin
+	cd ../bin
 	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-client
 	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-api
 	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-server
