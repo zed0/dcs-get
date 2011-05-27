@@ -64,7 +64,7 @@ http.get({
 							})
 							md5sum.stdout.on('end', function () {
 								var packageHash = packages[package].md5[packages[package].version[v]];
-								if (packageHash == md5Hash) {
+								if (packageHash == md5hash) {
 									console.log(package + '-' + packages[package].version[v] + ' installed.');
 									packages[package].installed = packages[package].version[v];
 								} else {
