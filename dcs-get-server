@@ -56,14 +56,21 @@ http.get({
 					if(path.existsSync(filePath)) {
 						var tarPath = settings.install_dir + '/downloaded/' + package + '-' + packages[package].version[v] + '.tar.gz';
 						if(path.existsSync(tarPath)) {
-							var fileHash = crypto.createHash('md5').update(fs.readFileSync(tarPath)).digest('hex');
-							var packageHash = packages[package].md5[packages[package].version[v]];
-							if (packageHash == fileHash) {
-								console.log(package + '-' + packages[package].version[v] + ' installed.');
-								packages[package].installed = packages[package].version[v];
-							} else {
-								console.log('WARNING: ' + tarPath + ' hash incorrect!');
-							}
+							// Calculate md5sum
+							var md5sum = spawn('md5sum ' + tarPath);
+							var md5hash = '';
+							md5sum.stdout.on('data', function (chunk) {
+								md5hash += chunk;
+							})
+							md5sum.stdout.on('end', function () {
+								var packageHash = packages[package].md5[packages[package].version[v]];
+								if (packageHash == md5Hash) {
+									console.log(package + '-' + packages[package].version[v] + ' installed.');
+									packages[package].installed = packages[package].version[v];
+								} else {
+									console.log('WARNING: ' + tarPath + ' hash incorrect!');
+								}
+							});
 						} else {
 							console.log('WARNING: No .tar.gz found for ' + package + '-' + packages[package].version[v] + ', assuming invalid!');
 						}
