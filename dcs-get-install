@@ -52,7 +52,7 @@ then
 	cd downloaded/
 	wget http://backus.uwcs.co.uk/dcs-get/packages/node-0.4.2.tar.gz
 	cd ../
-	tar zxf node-0.4.2.tar.gz
+	tar zxf downloaded/node-0.4.2.tar.gz
 	
 	cd /bin
 	#Get dcs-get scripts.
