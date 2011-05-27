@@ -51,10 +51,11 @@ then
 	# Get node to execute client
 	cd downloaded/
 	wget http://backus.uwcs.co.uk/dcs-get/packages/node-0.4.2.tar.gz
+	cd ../
 	tar zxf node-0.4.2.tar.gz
 	
+	cd /bin
 	#Get dcs-get scripts.
-	cd ../bin
 	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-client
 	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-api
 	wget -q http://backus.uwcs.co.uk/dcs-get/dcs-get-server
