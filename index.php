@@ -7,13 +7,9 @@
 <body>
 <h1>dcs-get</h1>
 <h2>Installation</h2>
-<p>To update simply replace all previous dcs-get code in your .bashrc with the latest code available here.</p>
-<p>Add to .bashrc:</p>
-<pre>
-<?php
-	include("bashrc");
-?>
-</pre>
+<p>Simply download the following <a href="dgrc">file</a> (e.g. 'wget -O $HOME/.dgrc http://backus.uwcs.co.uk/dcs-get/dgrc')</p>
+<p>Then add 'source .dgrc' your .bashrc </p>
+
 <p>You can view the available packages <a href="package.php">here</a>,</p>
 
 <h2>Packaging</h2>
@@ -29,14 +25,6 @@ dcs-get gensymlinks git-1.2.3 (generate symlinks in bin and lib for the package,
 dcs-get package git-1.2.3 (build a .tar.gz for the folder and any files linked from bin or lib)
 </pre>
 <p>You now have a file in /var/tmp/dcs-get/downloaded which can be uploaded to backus as a package!</p>
-
-<h2>Tab Competion</h2>
-Add to .bashrc
-<pre>
-<?php
-	include("tabcomplete");
-?>
-</pre>
 
 <h2>Using dcs-get in .xsession</h2>
 <p>If you want to use dcs-get in your .xsession file (for instance, to preload packages when you log in) you need to make a couple of changes. First off, you need to add "#!/bin/bash" (without quotes) to the top of your .xsession file. Also, you must remove part of the first "if" statement, so that it reads "if [[ ! -n "$SSH_TTY" ]]".</p>
