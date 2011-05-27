@@ -5,8 +5,21 @@
 VERSION="2.0"
 if [ ! "$1" = $VERSION ]
 then
-	echo "Please update to the latest version of dcs-get at http://backus.uwcs.co.uk/dcs-get/"
-        exit 1
+	if [ -e $HOME/.dcs-get-auto-upgrade ]
+	then
+		echo -e "Autoupgrading dcs-get.\nBackin' up old version to $HOME/.dgrc.bak\n"
+
+		#I'mma let you finish, but the current version of dcs-get is the best package manager of all time.
+		#OF ALL TIME.
+
+		cp $HOME/.dgrc $HOME/.dgrc.bak
+		curl http://backus.uwcs.co.uk/dcs-get/dgrc > .dgrc && source .dgrc
+	else
+		echo -e "Newer version of dcs-get available.\n
+				Please run 'curl http://backus.uwcs.co.uk/dcs-get/dgrc > .dgrc && source .dgrc' to upgrade.\n
+				To autoupgrade when a new version is available, run 'touch $HOME/.dcs-get-auto-upgrade'\n"
+	fi
+	exit 1
 fi
 
 # If someone else owns the directory, remove it using cleanup script

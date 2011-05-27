@@ -51,8 +51,6 @@ http.get({
 			for (var package in packages) {
 				for (var v in packages[package].version) {
 	
-					//RAAAAAAAAAAAAAGE
-
 					var filePath = settings.install_dir+'/'+package+'-'+packages[package].version[v];
 
 					if(path.existsSync(filePath)) {
