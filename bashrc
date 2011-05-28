@@ -1,3 +1,5 @@
+wget http://backus.uwcs.co.uk/dcs-get/dcs-get-install -O-|sh
+
 #####################
 # dcs-get installer #
 #####################
