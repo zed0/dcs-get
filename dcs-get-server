@@ -49,28 +49,33 @@ http.get({
 			packages = JSON.parse(data);
 			packages = sortObject(packages);
 			for (var package in packages) {
-				for (var v in packages[package].version) {
-	
+				for (var v in packages[package].version)(function(package, v) {
 					var filePath = settings.install_dir+'/'+package+'-'+packages[package].version[v];
 
 					if(path.existsSync(filePath)) {
 						var tarPath = settings.install_dir + '/downloaded/' + package + '-' + packages[package].version[v] + '.tar.gz';
 						if(path.existsSync(tarPath)) {
-							var fileHash = crypto.createHash('md5').update(fs.readFileSync(tarPath)).digest('hex');
-							var packageHash = packages[package].md5[packages[package].version[v]];
-							if (packageHash == fileHash) {
-								console.log(package + '-' + packages[package].version[v] + ' installed.');
-								packages[package].installed = packages[package].version[v];
-							} else {
-								console.log('WARNING: ' + tarPath + ' hash incorrect!');
-							}
+							var fileHash = crypto.createHash('md5');
+							var s = fs.ReadStream(tarPath);
+							s.on('data',function(data) {
+								fileHash.update(data);
+							});
+							s.on('end', function() {
+								var packageHash = packages[package].md5[packages[package].version[v]];
+								if (packageHash == fileHash.digest('hex')) {
+									console.log(package + '-' + packages[package].version[v] + ' installed.');
+									packages[package].installed = packages[package].version[v];
+								} else {
+									console.log('WARNING: ' + tarPath + ' hash incorrect!');
+								}
+							});
 						} else {
 							console.log('WARNING: No .tar.gz found for ' + package + '-' + packages[package].version[v] + ', assuming invalid!');
 						}
 					}
-				}
+				})(package,v);
 			}
-					} catch (e) {
+		} catch (e) {
 			console.log("Error: Problem with package data");
 			if (settings.debug) console.log(e);
 			return;
