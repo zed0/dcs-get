@@ -48,33 +48,6 @@ http.get({
 		try {
 			packages = JSON.parse(data);
 			packages = sortObject(packages);
-			for (var package in packages) {
-				for (var v in packages[package].version)(function(package, v) {
-					var filePath = settings.install_dir+'/'+package+'-'+packages[package].version[v];
-
-					if(path.existsSync(filePath)) {
-						var tarPath = settings.install_dir + '/downloaded/' + package + '-' + packages[package].version[v] + '.tar.gz';
-						if(path.existsSync(tarPath)) {
-							var fileHash = crypto.createHash('md5');
-							var s = fs.ReadStream(tarPath);
-							s.on('data',function(data) {
-								fileHash.update(data);
-							});
-							s.on('end', function() {
-								var packageHash = packages[package].md5[packages[package].version[v]];
-								if (packageHash == fileHash.digest('hex')) {
-									console.log(package + '-' + packages[package].version[v] + ' installed.');
-									packages[package].installed = packages[package].version[v];
-								} else {
-									console.log('WARNING: ' + tarPath + ' hash incorrect!');
-								}
-							});
-						} else {
-							console.log('WARNING: No .tar.gz found for ' + package + '-' + packages[package].version[v] + ', assuming invalid!');
-						}
-					}
-				})(package,v);
-			}
 		} catch (e) {
 			console.log("Error: Problem with package data");
 			if (settings.debug) console.log(e);
@@ -95,7 +68,6 @@ INSTALL <foo> installs package foo. Dependencies are handled in the api, not her
 GETJSON returns the packages JSON to the api.
 */
 
-
 var server = net.createServer( function( stream ) {
 	stream.setEncoding('utf8');
 
@@ -108,8 +80,12 @@ var server = net.createServer( function( stream ) {
 			case "INSTALL":
 				
 				//We can assume package names are well-formed.
-				var temp = args[1].split("-");
-				downloadPackage( args[1], temp[0], temp[1] );
+				//No, we really can't
+				var temp = args[1].match(/(.*)-(.*)/);
+				if(temp)
+				{
+					aquirePackage(temp[1], temp[2]);
+				}
 				stream.end();
 				break;
 				
@@ -132,48 +108,70 @@ var server = net.createServer( function( stream ) {
 	});
 }).listen(settings['port'], 'localhost');
 
-function downloadPackage( package, packageName, packageVersion ) {
+function aquirePackage(package, packageVersion) {
+	downloading[package] = {
+		'version': packageVersion,
+		'downloaded': 0,
+		'totalSize': 1
+	};
+	var tarPath = settings.install_dir + '/downloaded/' + package + '-' + packageVersion + '.tar.gz';
+	if(path.existsSync(tarPath)) {
+		install(null, package, packageVersion);
+		downloading[package].downloaded = 1;
+	} else {
+		downloadPackage(package, packageVersion, install);
+	}
+}
+
+function downloadPackage(package, packageVersion, callback) {
 	http.get({
 		host: settings['base_host'],
 		port: 80,
-		path: settings['base_path']+'packages/'+package+'.tar.gz'
+		path: settings['base_path'] + 'packages/' + package + '-' + packageVersion + '.tar.gz'
 	}, function(res) {
-		downloading[packageName] = {};
-		downloading[packageName].downloaded = 0;
 		res.on('data', function (chunk) {
-			downloading[packageName].totalSize = Number(res.headers['content-length']);
-			downloading[packageName].downloaded += chunk.length;
+			downloading[package].totalSize = Number(res.headers['content-length']);
+			downloading[package].downloaded += chunk.length;
 		});
 		res.on('end', function () {
-			console.log("Package downloaded");
-			packages[packageName].installed = 1;
-			delete downloading[packageName];
-			fs.rename( settings.install_dir+"/downloads/"+package+".tar.gz", settings.install_dir+"/downloaded/"+package+".tar.gz", function ( err ) {
-				if ( err ) console.log( err );
-				else {
-					console.log( "Installed "+package );
-					return true;
-				}
+			fs.rename(settings.install_dir + '/downloads/' + package + '-' + packageVersion + '.tar.gz', settings.install_dir + '/downloaded/' + package + '-' + packageVersion + '.tar.gz', function ( err ) {
+				callback(err, package, packageVersion);
 			});
 		});
 		// Save file
-		util.pump(res, fs.createWriteStream(settings['install_dir']+'/downloads/'+package+'.tar.gz'));
-		// Extract contents
-		var tar = spawn('tar', ['zx','-C', settings['install_dir']]);
-		util.pump(res, tar.stdin);
-		// Calculate md5sum
-		var md5sum = spawn('md5sum');
-		util.pump(res, md5sum.stdin);
-		var md5hash = '';
-		md5sum.stdout.on('data', function (chunk) {
-			md5hash += chunk;
-		})
-		md5sum.stdout.on('end', function () {
-			console.log("File hash: "+md5hash);
-		});
+		util.pump(res, fs.createWriteStream(settings['install_dir'] + '/downloads/' + package + '-' + packageVersion + '.tar.gz'));
 	}).on('error', function(e) {
-	        console.log("Error: Problem downloading package.\n"+package+"\n"+packageName+"\n"+packageVersion);
-			if (settings.debug) console.log(e);
+		console.log('Error: Problem downloading package.\n' + package + '-' + packageVersion);
+		if (settings.debug) console.log(e);
+	});
+}
+
+function install(err, package, packageVersion)
+{
+	var tarPath = settings.install_dir + '/downloaded/' + package + '-' + packageVersion + '.tar.gz';
+	var fileHash = crypto.createHash('md5');
+	var s = fs.ReadStream(tarPath);
+	s.on('data',function(data) {
+		fileHash.update(data);
+	});
+	s.on('end', function() {
+		var packageHash = packages[package].md5[packageVersion];
+		if (packageHash == fileHash.digest('hex')) {
+			packages[package].installed = packageVersion;
+			// Extract contents
+			var tar = spawn('tar', ['zx','-C', settings['install_dir']]);
+			var s = fs.ReadStream(tarPath);
+			util.pump(s, tar.stdin);
+			tar.on('exit', function() {
+				console.log('Installed ' + package + '-' + packageVersion);
+				packages[package].installed = 1;
+				delete downloading[package];
+			});
+		} else {
+			console.log('WARNING: ' + tarPath + ' hash incorrect: ' + packageHash);
+			fs.unlink(tarPath);
+			delete downloading[package];
+		}
 	});
 }
 

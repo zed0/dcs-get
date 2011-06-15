@@ -50,16 +50,15 @@ else {
 							totalPackageSize += packageList[package].totalSize;
 
 							var fracDone = packageList[package].downloaded/packageList[package].totalSize;
-
-							process.stdout.write("\033[K" + package + ": " + (fracDone*100).toFixed(2) + "%\n");
-							drawProgressBar(fracDone);
+							var text = package + '-' + packageList[package]['version'] + ': ' + (fracDone*100).toFixed(2) + '%';
+							drawProgressBar(fracDone, text);
 						}
 						if (n) {
 							var totalFracDone = totalPackageDownloaded/totalPackageSize;
-							process.stdout.write("\033[KTotal: " + ((totalPackageDownloaded/totalPackageSize)*100).toFixed(2) + "%\n\033[K");
-							drawProgressBar(totalFracDone);
+							var text = 'Total: ' + ((totalPackageDownloaded/totalPackageSize)*100).toFixed(2) + '%';
+							drawProgressBar(totalFracDone, text);
 							process.stdout.write("\033[K\n\033[K");
-							process.stdout.write("\033[" + (2*n+3) + "A");
+							process.stdout.write("\033[" + (n+2) + "A");
 						} else {
 							clearInterval(id);
 						}
@@ -73,7 +72,7 @@ else {
 			process.argv.shift();
 			process.argv.shift();
 			dcsGet.reinstall( process.argv );
-			break;			
+			break;
 		case "list-downloading":
 			dcsGet.listDownloading( function( err, packageName, downloaded, totalSize) {
 				if ( !err ) {
@@ -117,37 +116,30 @@ else {
 	}	
 }
 
-function drawProgressBar(fracDone)
+function drawProgressBar(fracDone, text)
 {
 	var termWidth = tty.getWindowSize()[1];
 
-/*
-	if (fracDone <= 0.25) {
-		process.stdout.write('');
-	} else if (fracDone <= 0.75) {
-		process.stdout.write('');
-	} else {
-		process.stdout.write('');
+	process.stdout.write('\033[K');
+	process.stdout.write('\033[31m'); //set foreground red
+	process.stdout.write('\033[42m'); //set background green
+	for (var i=0; i<(fracDone*(termWidth-3)); i++) {
+		if(text.charAt(i)) {
+			process.stdout.write(text.charAt(i));
+		} else {
+			process.stdout.write(' ');
+		}
 	}
-*/
-	process.stdout.write('\033[K[');
+
 	process.stdout.write('\033[32m'); //set foreground green
 	process.stdout.write('\033[41m'); //set background red
-	for (var i=0; i<(fracDone*(termWidth-3))-1; i++) {
-		process.stdout.write('█');
-		//process.stdout.write('=');
-	}
-	///*
-	if ((fracDone*(termWidth-3))%1>=0.5) {
-		process.stdout.write('▌');
-	} else {
-		process.stdout.write(' ');
-	}
-	//*/
-	//process.stdout.write('>');
-	for (var i=0; i<((1-fracDone)*(termWidth-3)); i++) {
-		process.stdout.write(' ');
+	for (var i=(fracDone*(termWidth-3)); i<(termWidth-3); i++) {
+		if(text.charAt(i)) {
+			process.stdout.write(text.charAt(i));
+		} else {
+			process.stdout.write(' ');
+		}
 	}
 	process.stdout.write('\033[0m');
-	process.stdout.write(']\n');
+	process.stdout.write('\n');
 }
